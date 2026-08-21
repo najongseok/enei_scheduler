@@ -1,0 +1,76 @@
+{% extends "admin_base.html" %}
+{% set nav = "devices" %}
+{% block title %}현장 단말기{% endblock %}
+
+{% block body %}
+<h1>현장 단말기</h1>
+<p class="sub">여기에 등록된 기기에서만 출퇴근을 찍을 수 있습니다. 관리자 화면은 이 제한을 받지 않습니다.</p>
+
+{% if new_token %}
+<div class="card" style="border-color:var(--teal)">
+  <h2>등록 링크가 생성됐습니다 — 지금 한 번만 표시됩니다</h2>
+  <div style="padding:18px">
+    <p style="margin-bottom:12px">아래 주소를 <b>매장 POS PC 브라우저</b>에서 한 번 열면 그 PC 가 출퇴근 단말기로 등록됩니다.</p>
+    <input type="text" readonly value="{{ request.base_url }}enroll?t={{ new_token }}"
+           style="width:100%;font-family:ui-monospace,monospace" onclick="this.select()">
+    <p class="sub" style="margin-top:12px">
+      링크를 연 브라우저에 쿠키가 저장됩니다. 시크릿 모드로 열면 창을 닫는 순간 사라지니 일반 창에서 여세요.
+    </p>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>등록된 기기</h2>
+  <div class="scrollx">
+  <table>
+    <thead><tr><th>이름</th><th>허용 IP 대역</th><th>좌표 검증</th><th>마지막 사용</th><th>상태</th><th></th></tr></thead>
+    <tbody>
+      {% for d in devices %}
+      <tr>
+        <td><b>{{ d.label }}</b></td>
+        <td>{{ d.allowed_cidrs or "제한 없음" }}</td>
+        <td>{% if d.require_geo %}반경 {{ d.radius_m }}m{% else %}사용 안 함{% endif %}</td>
+        <td>{{ d.last_seen_at.strftime("%m/%d %H:%M") if d.last_seen_at else "–" }}
+            <span style="color:var(--muted)">{{ d.last_seen_ip or "" }}</span></td>
+        <td>{% if d.active %}<span class="badge badge-on">사용 중</span>{% else %}<span class="badge badge-off">중지</span>{% endif %}</td>
+        <td>
+          <form method="post" action="/admin/devices/{{ d.id }}/toggle">
+            <button class="btn ghost" style="padding:6px 12px">{{ "중지" if d.active else "다시 사용" }}</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="empty">등록된 기기가 없습니다. 아래에서 POS PC 를 등록하세요.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>새 기기 등록</h2>
+  <form method="post" action="/admin/devices" style="padding:18px;display:grid;gap:14px;max-width:560px">
+    <div>
+      <label style="font-size:.85rem;color:var(--muted);font-weight:700">기기 이름</label><br>
+      <input type="text" name="label" placeholder="예: 원주점 POS-1" required style="width:100%">
+    </div>
+    <div>
+      <label style="font-size:.85rem;color:var(--muted);font-weight:700">허용 IP 대역 (선택)</label><br>
+      <input type="text" name="allowed_cidrs" placeholder="예: 121.135.20.0/24, 203.0.113.7" style="width:100%">
+      <p class="sub" style="margin:6px 0 0">비워두면 IP 는 검사하지 않고 기기 등록만으로 판단합니다. 유동 IP 매장은 비워두는 편이 안정적입니다.</p>
+    </div>
+    <div>
+      <label style="font-size:.85rem;color:var(--muted);font-weight:700">좌표 검증 (선택 · HTTPS 필요)</label><br>
+      <input type="number" name="lat" step="0.000001" placeholder="위도" style="width:150px">
+      <input type="number" name="lng" step="0.000001" placeholder="경도" style="width:150px">
+      <input type="number" name="radius_m" value="200" style="width:100px">m
+      <label style="display:inline-flex;align-items:center;gap:6px;margin-left:10px;color:inherit;font-size:.95rem">
+        <input type="checkbox" name="require_geo" value="true"> 사용
+      </label>
+      <p class="sub" style="margin:6px 0 0">데스크톱 PC 는 GPS 가 없어 오차가 큽니다. 모바일 출퇴근을 열어줄 때만 켜세요.</p>
+    </div>
+    <button class="btn" style="justify-self:start">등록하고 링크 만들기</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "admin_base.html" %}
+{% set nav = "records" %}
+{% block title %}근무기록{% endblock %}
+
+{% block body %}
+<h1>{{ year }}년 {{ month }}월 근무기록</h1>
+<p class="sub">휴게시간을 <b>자동</b>으로 두면 법정 기준으로 계산되고, <b>수동</b>으로 바꾸면 입력한 값이 그대로 적용됩니다.</p>
+
+<form class="bar" method="get" action="/admin/records">
+  <input type="number" name="year" value="{{ year }}" style="width:100px">
+  <input type="number" name="month" value="{{ month }}" style="width:80px">
+  <select name="worker_id">
+    <option value="">전체 직원</option>
+    {% for wid, w in workers.items() %}
+    <option value="{{ wid }}" {{ 'selected' if worker_id == wid }}>{{ w.name }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn ghost">조회</button>
+</form>
+
+<div class="card">
+  <div class="scrollx">
+  <table>
+    <thead>
+      <tr>
+        <th>날짜</th><th>이름</th><th>출근</th><th>퇴근</th>
+        <th>휴게</th><th class="num">실근무</th><th>휴일</th><th>메모</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}{% set w = workers[r.worker_id] %}{% include "_record_row.html" %}{% else %}
+      <tr><td colspan="9" class="empty">해당 기간 기록이 없습니다.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="note">
+    <b>기록 출처</b> 배지는 휴게시간을 누가 정했는지 보여줍니다.
+    근로자가 퇴근하며 직접 고른 값(<span class="badge badge-on">근로자</span>)을 관리자가 덮어쓰면
+    <span class="badge badge-warn">관리자</span> 로 바뀌고, 원래 값과 수정 시각이 함께 남습니다.
+  </p>
+</div>
+{% endblock %}

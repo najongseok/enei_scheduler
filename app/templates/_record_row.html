@@ -1,0 +1,29 @@
+<tr id="rec-{{ r.id }}">
+  <form hx-post="/admin/records/{{ r.id }}" hx-target="#rec-{{ r.id }}" hx-swap="outerHTML">
+    <td>{{ r.work_date }}</td>
+    <td><b>{{ w.name }}</b></td>
+    <td>
+      <input type="number" class="time" name="in_h" value="{{ r.in_h }}" min="0" max="23">:
+      <input type="number" class="time" name="in_m" value="{{ r.in_m }}" min="0" max="59">
+    </td>
+    <td>
+      <input type="number" class="time" name="out_h" value="{{ r.out_h if r.out_h is not none else '' }}" min="0" max="23">:
+      <input type="number" class="time" name="out_m" value="{{ r.out_m if r.out_m is not none else '' }}" min="0" max="59">
+    </td>
+    <td>
+      <select name="break_mode" style="width:88px">
+        <option value="auto" {{ 'selected' if r.break_override is none }}>자동</option>
+        <option value="manual" {{ 'selected' if r.break_override is not none }}>수동</option>
+      </select>
+      <input type="number" name="break_minutes" value="{{ r.break_minutes or 0 }}" min="0" step="10" style="width:76px">분
+      <br>
+      {% if r.break_source == 'worker' %}<span class="badge badge-on">근로자</span>
+      {% elif r.break_source == 'admin' %}<span class="badge badge-warn">관리자</span>
+      {% else %}<span class="badge badge-auto">자동</span>{% endif %}
+    </td>
+    <td class="num">{{ r.minutes|hhmm }}</td>
+    <td><input type="checkbox" name="is_holiday" value="true" {{ 'checked' if r.is_holiday }} aria-label="휴일 근로"></td>
+    <td><input type="text" name="memo" value="{{ r.memo or '' }}" placeholder="사유" style="width:120px"></td>
+    <td><button class="btn ghost" style="padding:6px 12px">저장</button></td>
+  </form>
+</tr>

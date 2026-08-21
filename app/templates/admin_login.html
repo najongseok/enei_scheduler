@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>관리자 로그인 · ENEI</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Pretendard,'Malgun Gothic',sans-serif;background:#10262B;color:#10262B;
+     display:grid;place-items:center;min-height:100vh;padding:20px}
+.box{background:#fff;border-radius:18px;padding:38px 32px;width:min(400px,100%)}
+h1{font-size:1.4rem;font-weight:800;letter-spacing:-.02em}
+p{color:#6C8A91;margin:6px 0 26px;font-size:.92rem}
+label{display:block;font-size:.85rem;font-weight:700;color:#6C8A91;margin:14px 0 6px}
+input{width:100%;padding:13px;border:1px solid #DFE8EA;border-radius:10px;font-size:1rem;font-family:inherit}
+button{width:100%;margin-top:24px;padding:15px;border:0;border-radius:10px;background:#2E8C9E;
+       color:#fff;font-size:1.05rem;font-weight:700;font-family:inherit;cursor:pointer}
+button:hover{background:#1F6F80}
+.err{background:#F7E3DF;color:#C6553F;padding:11px 14px;border-radius:9px;font-size:.9rem;font-weight:600;margin-bottom:4px}
+</style></head>
+<body>
+<form class="box" method="post" action="/admin/login">
+  <h1>관리자 로그인</h1>
+  <p>급여·근태 관리는 관리자만 접근할 수 있습니다.</p>
+  {% if error %}<div class="err">{{ error }}</div>{% endif %}
+  <label for="u">아이디</label>
+  <input id="u" name="username" autocomplete="username" required autofocus>
+  <label for="p">비밀번호</label>
+  <input id="p" name="password" type="password" autocomplete="current-password" required>
+  <button>로그인</button>
+</form>
+</body></html>

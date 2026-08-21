@@ -1,0 +1,26 @@
+<tr id="row-{{ r.worker_id }}">
+  <td><input type="checkbox" name="worker_ids" value="{{ r.worker_id }}" aria-label="{{ r.name }} 선택"></td>
+  <td>
+    <b>{{ r.name }}</b>
+    {% if r.net_pay_agreement %}<span class="badge tag-net">세후합의</span>{% endif %}
+  </td>
+  <td>{{ r.employment_type }}{% if r.extra_eligible %} <span class="badge badge-warn">가산</span>{% endif %}</td>
+  <td class="num">{{ r.hourly|won }}</td>
+  <td class="num">{{ r.total_hours }}h<br><span style="color:var(--muted);font-size:.8rem">{{ r.days_worked }}일</span></td>
+  <td class="num">{{ r.base_pay|won }}</td>
+  <td class="num">{{ r.weekly_pay|won }}</td>
+  <td class="num">{{ r.extra_pay|won }}</td>
+  <td class="num">
+    <form hx-post="/admin/payroll/adjust" hx-target="#row-{{ r.worker_id }}" hx-swap="outerHTML"
+          style="display:flex;gap:6px;justify-content:flex-end">
+      <input type="hidden" name="worker_id" value="{{ r.worker_id }}">
+      <input type="hidden" name="year" value="{{ year }}">
+      <input type="hidden" name="month" value="{{ month }}">
+      <input type="number" name="amount" value="{{ r.adjustment }}" step="1000" style="width:100px">
+      <input type="text" name="memo" value="{{ r.adjust_memo }}" placeholder="사유" style="width:90px">
+      <button class="btn ghost" style="padding:6px 10px">저장</button>
+    </form>
+  </td>
+  <td class="num"><b>{{ r.total_pay|won }}</b></td>
+  <td><a href="/admin/records?worker_id={{ r.worker_id }}&year={{ year }}&month={{ month }}" style="color:var(--teal);font-weight:600">기록</a></td>
+</tr>

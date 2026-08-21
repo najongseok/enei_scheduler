@@ -1,0 +1,166 @@
+{% extends "admin_base.html" %}
+{% set nav = "payroll" %}
+{% block title %}월 급여{% endblock %}
+
+{% block body %}
+<h1>{{ year }}년 {{ month }}월 급여</h1>
+<p class="sub">화면에서 먼저 확인하고 고친 뒤, 필요한 사람만 골라서 내보내세요.</p>
+
+<form class="bar" method="get" action="/admin/payroll">
+  <input type="number" name="year" value="{{ year }}" min="2020" max="2099" style="width:100px">
+  <input type="number" name="month" value="{{ month }}" min="1" max="12" style="width:80px">
+  <button class="btn ghost">조회</button>
+</form>
+
+<form id="sel">
+  <input type="hidden" name="year" value="{{ year }}">
+  <input type="hidden" name="month" value="{{ month }}">
+
+  <div class="card">
+    <div class="scrollx">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:38px"><input type="checkbox" id="all" aria-label="전체 선택"></th>
+          <th>이름</th><th>구분</th>
+          <th class="num">시급</th><th class="num">실근무</th>
+          <th class="num">기본급</th><th class="num">주휴수당</th><th class="num">가산수당</th>
+          <th class="num">조정액</th><th class="num">지급액</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}{% include "_payroll_row.html" %}{% else %}
+        <tr><td colspan="11" class="empty">등록된 직원이 없습니다.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="total-row">
+          <td colspan="9" style="text-align:right">전체 합계</td>
+          <td class="num">{{ total_sum|won }}원</td><td></td>
+        </tr>
+      </tfoot>
+    </table>
+    </div>
+
+    <div class="sticky-actions">
+      <span class="count"><b id="cnt">0</b>명 선택됨</span>
+      <button type="button" class="btn warn"
+              hx-post="/admin/payroll/grossup" hx-include="#sel" hx-target="#grossup" hx-swap="innerHTML">
+        3.3% 역산하기
+      </button>
+      <button type="button" class="btn" onclick="exportSelected(false)">선택 인원 엑셀 저장</button>
+      <button type="button" class="btn ghost" onclick="exportSelected(true)">세전 포함 엑셀 저장</button>
+    </div>
+  </div>
+</form>
+
+<div id="grossup"></div>
+
+<div class="card">
+  <h2>주휴수당 — 확인이 필요한 주만</h2>
+
+  {% if weekly.flagged == 0 %}
+    <p class="empty">
+      이번 달 {{ weekly.normal }}개 주 모두 약정일수대로 근무해 확인할 항목이 없습니다.
+    </p>
+  {% else %}
+    <p class="note" style="border-top:0;border-bottom:1px solid var(--line)">
+      정상 {{ weekly.normal }}주는 접어두고, 확인이 필요한 <b>{{ weekly.flagged }}건</b>만 보여줍니다.
+    </p>
+
+    {% macro week_table(items, kind) %}
+    <div class="scrollx">
+    <table>
+      <thead>
+        <tr>
+          <th>이름</th><th>주(일요일 기준)</th>
+          <th class="num">근무일</th><th class="num">주 근로시간</th>
+          <th>현재 적용</th><th>변경</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for w in items %}
+        <tr>
+          <td><b>{{ w.name }}</b></td>
+          <td>{{ w.sunday }}</td>
+          <td class="num">
+            {{ w.days }}일
+            <span style="color:var(--muted);font-size:.82rem">/ 약정 {{ w.contract_days }}일</span>
+          </td>
+          <td class="num">{{ w.hours }}h</td>
+          <td id="wk-{{ w.worker_id }}-{{ w.iso_year }}-{{ w.iso_week }}">
+            {% if w.source == 'manual' %}<span class="badge {{ 'badge-on' if w.granted else 'badge-off' }}">{{ '지급' if w.granted else '미지급' }} (수동)</span>
+            {% elif w.source == 'policy' %}<span class="badge badge-warn">{{ '지급' if w.granted else '미지급' }} (정책)</span>
+            {% else %}<span class="badge badge-auto">{{ '지급' if w.granted else '미지급' }} (자동)</span>{% endif %}
+          </td>
+          <td>
+            {% set tgt = "#wk-" ~ w.worker_id ~ "-" ~ w.iso_year ~ "-" ~ w.iso_week %}
+            <button class="btn ghost mini" hx-post="/admin/weekly-holiday" hx-target="{{ tgt }}" hx-swap="innerHTML"
+              hx-vals='{"worker_id":{{ w.worker_id }},"iso_year":{{ w.iso_year }},"iso_week":{{ w.iso_week }},"granted":true}'>지급</button>
+            <button class="btn ghost mini" hx-post="/admin/weekly-holiday" hx-target="{{ tgt }}" hx-swap="innerHTML"
+              hx-vals='{"worker_id":{{ w.worker_id }},"iso_year":{{ w.iso_year }},"iso_week":{{ w.iso_week }},"granted":false}'>미지급</button>
+            <button class="btn ghost mini" hx-post="/admin/weekly-holiday" hx-target="{{ tgt }}" hx-swap="innerHTML"
+              hx-vals='{"worker_id":{{ w.worker_id }},"iso_year":{{ w.iso_year }},"iso_week":{{ w.iso_week }},"granted":false,"reset":true}'>자동</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% endmacro %}
+
+    {% if weekly.short %}
+    <details open>
+      <summary><span class="badge badge-off">약정일 미달</span> {{ weekly.short|length }}건 — 주휴수당이 지급되지 않는 주</summary>
+      {{ week_table(weekly.short, 'short') }}
+    </details>
+    {% endif %}
+
+    {% if weekly.over %}
+    <details>
+      <summary><span class="badge badge-warn">약정일 초과</span> {{ weekly.over|length }}건 — 더 일한 주</summary>
+      {{ week_table(weekly.over, 'over') }}
+    </details>
+    {% endif %}
+
+    {% if weekly.manual %}
+    <details>
+      <summary><span class="badge badge-on">수동 지정</span> {{ weekly.manual|length }}건 — 관리자가 직접 정한 주</summary>
+      {{ week_table(weekly.manual, 'manual') }}
+    </details>
+    {% endif %}
+  {% endif %}
+
+  <p class="note">
+    적용 우선순위는 <b>수동 지정 → 직원별 정책 → 법정 자동 판정</b> 순입니다.
+    법정 요건은 주 15시간 이상이면서 약정 근로일수를 채운 주이고,
+    주휴수당은 그 주의 일요일이 속한 달에 귀속됩니다.
+  </p>
+</div>
+
+<script>
+const form = document.getElementById("sel");
+function selected() {
+  return [...form.querySelectorAll('input[name=worker_ids]:checked')].map(c => c.value);
+}
+function refreshCount() { document.getElementById("cnt").textContent = selected().length; }
+document.getElementById("all").addEventListener("change", e => {
+  form.querySelectorAll('input[name=worker_ids]').forEach(c => c.checked = e.target.checked);
+  refreshCount();
+});
+form.addEventListener("change", refreshCount);
+
+function exportSelected(withGross) {
+  const ids = selected();
+  if (!ids.length) { alert("내보낼 인원을 먼저 선택하세요."); return; }
+  const f = document.createElement("form");
+  f.method = "POST"; f.action = "/admin/payroll/export";
+  const add = (k, v) => { const i = document.createElement("input"); i.name = k; i.value = v; f.appendChild(i); };
+  add("year", {{ year }}); add("month", {{ month }});
+  ids.forEach(id => add("worker_ids", id));
+  if (withGross) add("include_grossup", "true");
+  document.body.appendChild(f); f.submit(); f.remove();
+}
+refreshCount();
+</script>
+{% endblock %}

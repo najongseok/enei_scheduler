@@ -1,0 +1,77 @@
+{% extends "admin_base.html" %}
+{% set nav = "workers" %}
+{% block title %}직원 관리{% endblock %}
+
+{% macro policy_selects(w) %}
+  <select name="break_policy" style="width:132px">
+    <option value="ask"  {{ 'selected' if w and w.break_policy=='ask' }}>퇴근 시 물어봄</option>
+    <option value="auto" {{ 'selected' if w and w.break_policy=='auto' }}>법정 자동차감</option>
+    <option value="none" {{ 'selected' if w and w.break_policy=='none' }}>차감 안 함</option>
+  </select>
+  <select name="weekly_holiday_policy" style="width:118px">
+    <option value="auto"   {{ 'selected' if w and w.weekly_holiday_policy=='auto' }}>법정 판정</option>
+    <option value="always" {{ 'selected' if w and w.weekly_holiday_policy=='always' }}>항상 지급</option>
+    <option value="never"  {{ 'selected' if w and w.weekly_holiday_policy=='never' }}>지급 안 함</option>
+  </select>
+{% endmacro %}
+
+{% block body %}
+<h1>직원 관리</h1>
+<p class="sub">휴게시간과 주휴수당의 <b>기본 동작</b>을 사람마다 다르게 정할 수 있습니다. 개별 날짜·주는 근무기록·급여 화면에서 따로 덮어씁니다.</p>
+
+<div class="card">
+  <h2>등록된 직원</h2>
+  <div class="scrollx">
+  <table>
+    <thead><tr><th>이름</th><th class="num">시급</th><th class="num">약정일</th><th>구분</th><th>가산</th><th>휴게 / 주휴 기본값</th><th>세후합의</th><th>PIN 재발급</th><th></th></tr></thead>
+    <tbody>
+      {% for w in workers %}
+      <tr>
+        <form method="post" action="/admin/workers/{{ w.id }}">
+          <td><b>{{ w.name }}</b>{% if not w.active %} <span class="badge badge-off">비활성</span>{% endif %}</td>
+          <td class="num"><input type="number" name="hourly" value="{{ w.hourly }}" step="10" style="width:96px"></td>
+          <td class="num"><input type="number" name="contract_days" value="{{ w.contract_days }}" min="1" max="7" style="width:60px"></td>
+          <td>
+            <select name="employment_type" style="width:96px">
+              <option {{ 'selected' if w.employment_type=='파트타임' }}>파트타임</option>
+              <option {{ 'selected' if w.employment_type=='정규' }}>정규</option>
+            </select>
+          </td>
+          <td><input type="checkbox" name="extra_eligible" value="true" {{ 'checked' if w.extra_eligible }} aria-label="가산수당 적용"></td>
+          <td>{{ policy_selects(w) }}</td>
+          <td><input type="checkbox" name="net_pay_agreement" value="true" {{ 'checked' if w.net_pay_agreement }} aria-label="세후 합의"></td>
+          <td><input type="text" name="pin" placeholder="변경 시에만" style="width:110px"></td>
+          <td>
+            <input type="hidden" name="active" value="true">
+            <button class="btn ghost" style="padding:6px 12px">저장</button>
+          </td>
+        </form>
+      </tr>
+      {% else %}
+      <tr><td colspan="9" class="empty">등록된 직원이 없습니다.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="note">
+    <b>휴게 기본값</b> — “퇴근 시 물어봄”이 기본이자 권장값입니다. 실제로 쉰 시간을 본인이 고르므로,
+    못 쉰 날 임금이 깎이는 일도, 안 쉬는 사람에게 일괄 차감되는 일도 없어집니다.
+    “법정 자동차감”은 예전 방식 그대로이고, “차감 안 함”은 휴게가 없는 단시간 근로자용입니다.<br>
+    <b>세후합의</b> — 체크한 사람은 급여 화면에서 3.3% 역산 대상으로 표시됩니다.
+  </p>
+</div>
+
+<div class="card">
+  <h2>새 직원 추가</h2>
+  <form method="post" action="/admin/workers" style="padding:18px;display:flex;gap:12px;flex-wrap:wrap;align-items:end">
+    <div><label style="font-size:.8rem;color:var(--muted);font-weight:700">이름</label><br><input type="text" name="name" required style="width:120px"></div>
+    <div><label style="font-size:.8rem;color:var(--muted);font-weight:700">고유번호</label><br><input type="text" name="pin" required style="width:110px"></div>
+    <div><label style="font-size:.8rem;color:var(--muted);font-weight:700">시급</label><br><input type="number" name="hourly" value="10030" step="10" style="width:100px"></div>
+    <div><label style="font-size:.8rem;color:var(--muted);font-weight:700">약정일수</label><br><input type="number" name="contract_days" value="5" min="1" max="7" style="width:70px"></div>
+    <div><label style="font-size:.8rem;color:var(--muted);font-weight:700">휴게 / 주휴</label><br>{{ policy_selects(None) }}</div>
+    <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="extra_eligible" value="true"> 가산수당</label>
+    <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="net_pay_agreement" value="true"> 세후합의</label>
+    <button class="btn">추가</button>
+  </form>
+</div>
+{% endblock %}

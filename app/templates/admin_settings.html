@@ -1,0 +1,46 @@
+{% extends "admin_base.html" %}
+{% set nav = "settings" %}
+{% block title %}설정{% endblock %}
+
+{% block body %}
+<h1>설정</h1>
+<p class="sub">출퇴근 단말기 인증에 쓰이는 코드를 관리합니다.</p>
+
+{% if saved %}
+<div class="card" style="border-color:var(--grass)">
+  <p style="padding:16px 18px;color:var(--grass);font-weight:700">
+    인증 코드가 변경됐습니다. 기존에 인증된 기기는 모두 로그아웃되니,
+    매장 POS PC 에서 새 코드로 다시 인증해 주세요.
+  </p>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>단말기 인증 코드</h2>
+
+  <div style="padding:22px 18px">
+    <p style="font-size:.85rem;color:var(--muted);font-weight:700;margin-bottom:8px">현재 코드</p>
+    <p style="font-size:2.4rem;font-weight:800;letter-spacing:.22em;
+              font-variant-numeric:tabular-nums;margin-bottom:22px">{{ passcode }}</p>
+
+    <form method="post" action="/admin/settings/passcode" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+      <div>
+        <label for="pc" style="display:block;font-size:.85rem;color:var(--muted);font-weight:700;margin-bottom:6px">새 코드 (4~12자)</label>
+        <input id="pc" type="text" name="passcode" required minlength="4" maxlength="12"
+               placeholder="예: 481502" style="width:180px;letter-spacing:.1em">
+      </div>
+      <button class="btn">코드 변경</button>
+    </form>
+  </div>
+
+  <p class="note">
+    <b>쓰는 법</b> — 새 POS PC 나 태블릿에서 출퇴근 주소에 접속하면 코드 입력 화면이 뜹니다.
+    위 코드를 한 번만 입력하면 그 브라우저에 2년짜리 인증이 저장되고,
+    이후에는 직원들이 코드 없이 바로 출퇴근 화면을 씁니다.<br><br>
+    <b>코드를 바꾸면 모든 기기가 한꺼번에 로그아웃됩니다.</b>
+    코드가 외부로 샜거나, 쓰지 않는 기기의 인증을 한 번에 끊고 싶을 때 사용하세요.
+    이 코드는 화면에 그대로 표시되므로, 관리자 계정 비밀번호와는 다른 값으로 정하시고
+    직원에게 공유하지 마세요.
+  </p>
+</div>
+{% endblock %}
