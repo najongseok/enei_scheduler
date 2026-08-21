@@ -40,4 +40,49 @@
     <span class="badge badge-warn">관리자</span> 로 바뀌고, 원래 값과 수정 시각이 함께 남습니다.
   </p>
 </div>
+<div class="card">
+  <h2>기록 직접 추가</h2>
+  <form hx-post="/admin/records/add" hx-target="tbody" hx-swap="beforeend"
+        style="padding:18px;display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+    <div>
+      <label style="font-size:.8rem;color:var(--muted);font-weight:700;display:block;margin-bottom:5px">직원</label>
+      <select name="worker_id" required style="width:120px">
+        {% for wid, w in workers.items() %}
+        <option value="{{ wid }}">{{ w.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label style="font-size:.8rem;color:var(--muted);font-weight:700;display:block;margin-bottom:5px">날짜</label>
+      <input type="date" name="work_date" required style="width:150px">
+    </div>
+    <div>
+      <label style="font-size:.8rem;color:var(--muted);font-weight:700;display:block;margin-bottom:5px">출근</label>
+      <input type="number" class="time" name="in_h" min="0" max="23" placeholder="시" required>:
+      <input type="number" class="time" name="in_m" min="0" max="59" placeholder="분" value="0">
+    </div>
+    <div>
+      <label style="font-size:.8rem;color:var(--muted);font-weight:700;display:block;margin-bottom:5px">퇴근</label>
+      <input type="number" class="time" name="out_h" min="0" max="23" placeholder="시" required>:
+      <input type="number" class="time" name="out_m" min="0" max="59" placeholder="분" value="0">
+    </div>
+    <div>
+      <label style="font-size:.8rem;color:var(--muted);font-weight:700;display:block;margin-bottom:5px">휴게</label>
+      <select name="break_mode" style="width:88px">
+        <option value="auto">자동</option>
+        <option value="manual">수동</option>
+      </select>
+      <input type="number" name="break_minutes" value="0" min="0" step="10" style="width:72px">분
+    </div>
+    <label style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+      <input type="checkbox" name="is_holiday" value="true"> 휴일근로
+    </label>
+    <div>
+      <label style="font-size:.8rem;color:var(--muted);font-weight:700;display:block;margin-bottom:5px">메모</label>
+      <input type="text" name="memo" placeholder="두 번째 근무 등" style="width:140px">
+    </div>
+    <button class="btn" style="margin-bottom:4px">추가</button>
+  </form>
+  <p class="note">같은 날 두 번째 근무 등 특이 케이스를 직접 입력합니다. 추가된 기록은 위 목록에 바로 반영됩니다.</p>
+</div>
 {% endblock %}
