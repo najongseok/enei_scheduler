@@ -41,6 +41,19 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup():
     init_db()
+    # 최초 실행 시 관리자 계정 자동 생성
+    import os
+    from sqlmodel import Session, select
+    admin_id = os.getenv("INIT_ADMIN_ID")
+    admin_pw = os.getenv("INIT_ADMIN_PW")
+    if admin_id and admin_pw:
+        with Session(engine) as db:
+            existing = db.exec(select(AdminUser).where(AdminUser.username == admin_id)).first()
+            if not existing:
+                db.add(AdminUser(username=admin_id,
+                                 password_hash=hash_secret(admin_pw),
+                                 role="owner"))
+                db.commit()
 
 
 # ── 오류를 사람 말로 ──────────────────────────────────────
