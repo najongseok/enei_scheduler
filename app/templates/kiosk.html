@@ -178,12 +178,12 @@ td{padding:14px 12px;border-bottom:1px solid #EEF3F4;font-variant-numeric:tabula
 <!-- 퇴근 시 휴게시간 확인 -->
 <div class="sheet" id="breakSheet" role="dialog" aria-modal="true" aria-labelledby="breakTitle">
   <div class="card">
-    <h3 id="breakTitle">오늘 쉬신 시간을 알려주세요</h3>
+    <h3 id="breakTitle">오늘 휴게 시간을 입력해주세요</h3>
     <p>실제로 쉰 시간만 고르면 됩니다. 바빠서 못 쉬었으면 <b>안 쉼</b>을 누르세요.<br>고른 시간만 근무시간에서 빠집니다.</p>
     <div class="brk" id="brkOptions">
       <button data-v="0" aria-pressed="false">안 쉼<small>0분</small></button>
-      <button data-v="30" aria-pressed="false">30분<small>짧은 식사</small></button>
-      <button data-v="60" aria-pressed="false">1시간<small>식사·휴식</small></button>
+      <button data-v="30" aria-pressed="false">30분<small>식사 시간 또는 휴식</small></button>
+      <button data-v="60" aria-pressed="false">1시간<small>휴식과 식사</small></button>
     </div>
     <div class="stepper">
       <button id="brkMinus" aria-label="10분 줄이기">−</button>
