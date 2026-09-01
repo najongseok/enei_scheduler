@@ -243,22 +243,22 @@ def export_selected(year: int = Form(...), month: int = Form(...),
 
 @router.get("/records", response_class=HTMLResponse)
 def records_page(request: Request, year: int | None = None, month: int | None = None,
-                 worker_id: int | None = None,
+                 worker_id: str | None = None,
                  admin: AdminUser = Depends(require_admin),
                  db: Session = Depends(get_session)):
     today = date.today()
     year, month = year or today.year, month or today.month
-
+    wid = int(worker_id) if worker_id and worker_id.strip() else None
     q = select(Record).order_by(Record.work_date.desc())
-    if worker_id:
-        q = q.where(Record.worker_id == worker_id)
+    if wid:
+        q = q.where(Record.worker_id == wid)
     rows = [r for r in db.exec(q).all()
             if r.work_date.year == year and r.work_date.month == month]
 
     workers = {w.id: w for w in db.exec(select(Worker)).all()}
     return render(request, "admin_records.html", {
         "request": request, "admin": admin, "rows": rows, "workers": workers,
-        "year": year, "month": month, "worker_id": worker_id})
+        "year": year, "month": month, "worker_id": wid})
 
 
 @router.post("/records/{record_id}", response_class=HTMLResponse)
