@@ -26,4 +26,12 @@
     <td><input type="text" name="memo" value="{{ r.memo or '' }}" placeholder="사유" style="width:120px"></td>
     <td><button class="btn ghost" style="padding:6px 12px">저장</button></td>
   </form>
+
+      <td>
+      <button class="btn danger" style="padding:6px 12px"
+        hx-post="/admin/records/{{ r.id }}/delete"
+        hx-target="#rec-{{ r.id }}"
+        hx-swap="outerHTML"
+        hx-confirm="정말 삭제할까요?">삭제</button>
+    </td>
 </tr>

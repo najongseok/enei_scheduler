@@ -24,12 +24,12 @@
     <thead>
       <tr>
         <th>날짜</th><th>이름</th><th>출근</th><th>퇴근</th>
-        <th>휴게</th><th class="num">실근무</th><th>휴일</th><th>메모</th><th></th>
+        <th>휴게</th><th class="num">실근무</th><th>휴일</th><th>메모</th><th></th><th></th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="records-tbody">
       {% for r in rows %}{% set w = workers[r.worker_id] %}{% include "_record_row.html" %}{% else %}
-      <tr><td colspan="9" class="empty">해당 기간 기록이 없습니다.</td></tr>
+      <tr><td colspan="10" class="empty">해당 기간 기록이 없습니다.</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -40,9 +40,10 @@
     <span class="badge badge-warn">관리자</span> 로 바뀌고, 원래 값과 수정 시각이 함께 남습니다.
   </p>
 </div>
+
 <div class="card">
   <h2>기록 직접 추가</h2>
-  <form hx-post="/admin/records/add" hx-target="tbody" hx-swap="beforeend"
+  <form hx-post="/admin/records/add" hx-target="#records-tbody" hx-swap="beforeend"
         style="padding:18px;display:flex;gap:10px;flex-wrap:wrap;align-items:end">
     <div>
       <label style="font-size:.8rem;color:var(--muted);font-weight:700;display:block;margin-bottom:5px">직원</label>
@@ -83,6 +84,6 @@
     </div>
     <button class="btn" style="margin-bottom:4px">추가</button>
   </form>
-  <p class="note">같은 날 두 번째 근무 등 특이 케이스를 직접 입력합니다. 추가된 기록은 위 목록에 바로 반영됩니다.</p>
+  <p class="note">같은 날 두 번째 근무 등 특이 케이스를 직접 입력합니다.</p>
 </div>
 {% endblock %}

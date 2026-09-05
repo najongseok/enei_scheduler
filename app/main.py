@@ -8,6 +8,8 @@ ENEI Scheduler Web — 앱 조립부.
     /kiosk-login       단말기 인증 코드 입력
 """
 from __future__ import annotations
+import os
+os.environ["TZ"] = "Asia/Seoul"
 
 import sys
 from datetime import datetime

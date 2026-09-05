@@ -260,6 +260,56 @@ def records_page(request: Request, year: int | None = None, month: int | None = 
         "request": request, "admin": admin, "rows": rows, "workers": workers,
         "year": year, "month": month, "worker_id": wid})
 
+@router.post("/records/add", response_class=HTMLResponse)
+def add_record(request: Request,
+               worker_id: int = Form(...),
+               work_date: str = Form(...),
+               in_h: int = Form(...), in_m: int = Form(...),
+               out_h: int = Form(...), out_m: int = Form(...),
+               break_mode: str = Form("auto"),
+               break_minutes: int = Form(0),
+               is_holiday: bool = Form(False),
+               memo: str = Form(""),
+               admin: AdminUser = Depends(require_admin),
+               db: Session = Depends(get_session)):
+    from datetime import date as date_type
+    d = date_type.fromisoformat(work_date)
+    override = None if break_mode == "auto" else max(0, break_minutes)
+    span = calc_span(in_h, in_m, out_h, out_m, break_override=override)
+    if span is None:
+        raise HTTPException(400, "퇴근 시각이 출근 시각보다 이릅니다.")
+    rec = Record(
+        worker_id=worker_id, work_date=d,
+        in_h=in_h, in_m=in_m, out_h=out_h, out_m=out_m,
+        total_minutes=span.total_min,
+        break_minutes=span.break_min,
+        break_override=override,
+        break_source="admin",
+        minutes=span.paid_min,
+        is_holiday=is_holiday,
+        memo=memo,
+        edited_by=admin.username,
+        edited_at=datetime.now(),
+    )
+    db.add(rec)
+    db.commit()
+    db.refresh(rec)
+    worker = db.get(Worker, worker_id)
+    return render(request, "_record_row.html", {
+        "request": request, "r": rec, "w": worker,
+        "year": d.year, "month": d.month})
+
+
+@router.post("/records/{record_id}/delete")
+def delete_record(record_id: int,
+                  admin: AdminUser = Depends(require_admin),
+                  db: Session = Depends(get_session)):
+    rec = db.get(Record, record_id)
+    if rec is None:
+        raise HTTPException(404, "기록을 찾을 수 없습니다.")
+    db.delete(rec)
+    db.commit()
+    return HTMLResponse("")
 
 @router.post("/records/{record_id}", response_class=HTMLResponse)
 def edit_record(record_id: int, request: Request,
