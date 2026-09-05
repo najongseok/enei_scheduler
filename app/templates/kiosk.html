@@ -258,6 +258,8 @@ document.addEventListener("keydown", e => {          // 바코드 스캐너·키
 
 async function submitPin() {
   if (!pin) return;
+  $("pinMsg").className = "msg";
+  $("pinMsg").textContent = "확인 중...";
   try {
     state = await api("/api/login", { pin });
     pin = ""; renderPin(); $("pinMsg").textContent = "";
@@ -325,6 +327,8 @@ function paint() {
 
 /* 출근 */
 $("btnIn").addEventListener("click", async () => {
+  $("btnIn").disabled = true;
+  $("btnIn").textContent = "인내를 갖고 기다리기....";
   try {
     state = await api("/api/clock-in", {});
     $("workMsg").className = "msg ok";
@@ -363,6 +367,8 @@ $("brkMinus").addEventListener("click", () => setBreak(chosenBreak - 10));
 $("brkCancel").addEventListener("click", () => $("breakSheet").classList.remove("on"));
 
 $("brkConfirm").addEventListener("click", async () => {
+  $("brkConfirm").textContent = "곧 됩니다..";
+  $("brkConfirm").disabled = true;
   try {
     state = await api("/api/clock-out", { break_minutes: chosenBreak });
     $("breakSheet").classList.remove("on");
