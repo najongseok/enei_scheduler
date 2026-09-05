@@ -3,12 +3,12 @@
     <td>{{ r.work_date }}</td>
     <td><b>{{ w.name }}</b></td>
     <td>
-      <input type="number" class="time" name="in_h" value="{{ r.in_h }}" min="0" max="23">:
-      <input type="number" class="time" name="in_m" value="{{ r.in_m }}" min="0" max="59">
+      <input type="number" class="time" name="in_h" value="{{ '%02d'|format(r.in_h) }}" min="0" max="23">:
+      <input type="number" class="time" name="in_m" value="{{ '%02d'|format(r.in_m) }}" min="0" max="59">
     </td>
     <td>
-      <input type="number" class="time" name="out_h" value="{{ r.out_h if r.out_h is not none else '' }}" min="0" max="23">:
-      <input type="number" class="time" name="out_m" value="{{ r.out_m if r.out_m is not none else '' }}" min="0" max="59">
+      <input type="number" class="time" name="out_h" value="{{ '%02d'|format(r.out_h) if r.out_h is not none else '' }}" min="0" max="23">:
+      <input type="number" class="time" name="out_m" value="{{ '%02d'|format(r.out_m) if r.out_m is not none else '' }}" min="0" max="59">
     </td>
     <td>
       <select name="break_mode" style="width:88px">
@@ -26,12 +26,11 @@
     <td><input type="text" name="memo" value="{{ r.memo or '' }}" placeholder="사유" style="width:120px"></td>
     <td><button class="btn ghost" style="padding:6px 12px">저장</button></td>
   </form>
-
-      <td>
-      <button class="btn danger" style="padding:6px 12px"
-        hx-post="/admin/records/{{ r.id }}/delete"
-        hx-target="#rec-{{ r.id }}"
-        hx-swap="outerHTML"
-        hx-confirm="정말 삭제할까요?">삭제</button>
-    </td>
+  <td>
+    <button class="btn danger" style="padding:6px 12px"
+      hx-post="/admin/records/{{ r.id }}/delete"
+      hx-target="#rec-{{ r.id }}"
+      hx-swap="outerHTML"
+      hx-confirm="정말 삭제할까요?">삭제</button>
+  </td>
 </tr>

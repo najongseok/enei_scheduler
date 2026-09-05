@@ -8,7 +8,8 @@
 기기 인증은 단말기 인증 코드 1회 입력 → 2년짜리 쿠키 방식입니다.
 """
 from __future__ import annotations
-
+from zoneinfo import ZoneInfo
+KST = ZoneInfo("Asia/Seoul")
 from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -39,7 +40,7 @@ class ClockOut(BaseModel):
 
 
 def _today() -> date:
-    return datetime.now().date()
+    return datetime.now(KST).date()
 
 
 def _today_record(db: Session, worker_id: int) -> Record | None:
@@ -68,7 +69,7 @@ def _state(worker: Worker, rec: Record | None) -> dict:
         "work_minutes": rec.minutes if rec else None,
     }
     if rec and rec.in_h is not None and rec.out_h is None:
-        now = datetime.now()
+        now = datetime.now(KST)
         sh, sm = snap_time(now.hour, now.minute, mode=settings.snap_out_mode)
         span = calc_span(rec.in_h, rec.in_m, sh, sm)
         if span:
@@ -147,7 +148,7 @@ def clock_in(request: Request,
     if _today_record(db, worker.id):
         return JSONResponse({"detail": "오늘은 이미 출근 처리됐어요."}, status_code=409)
 
-    now = datetime.now()
+    now = datetime.now(KST)
     sh, sm = snap_time(now.hour, now.minute, mode=settings.snap_in_mode)
     rec = Record(
         worker_id=worker.id, work_date=now.date(),
@@ -173,7 +174,7 @@ def clock_out(body: ClockOut, request: Request,
     if rec.out_h is not None:
         return JSONResponse({"detail": "오늘은 이미 퇴근 처리됐어요."}, status_code=409)
 
-    now = datetime.now()
+    now = datetime.now(KST)
     sh, sm = snap_time(now.hour, now.minute, mode=settings.snap_out_mode)
 
     if worker.break_policy == "auto":
