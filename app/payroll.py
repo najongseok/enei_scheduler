@@ -105,7 +105,7 @@ def calc_span(in_h: int, in_m: int, out_h: int, out_m: int,
 #  2. 월 급여 계산
 # ─────────────────────────────────────────────────────────────
 
-REGULAR_MAX_MIN = 8 * 60
+REGULAR_MAX_MIN = 9 * 60           # 이 시간을 넘는 부분만 연장 가산(50%) 대상
 WEEKLY_HOLIDAY_MIN_HOURS = 15      # 주 15시간 이상
 WEEKLY_HOLIDAY_FULL_HOURS = 40     # 40시간 기준 비례
 

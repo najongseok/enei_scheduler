@@ -8,8 +8,15 @@ ENEI Scheduler Web — 앱 조립부.
     /kiosk-login       단말기 인증 코드 입력
 """
 from __future__ import annotations
+
 import os
+import time as _time
+
+# 컨테이너 기본 시간대가 UTC 라서, 프로세스 시작 직후 한국 시간으로 고정합니다.
+# (Render 환경변수 TZ 와 별개로 코드에서도 보장)
 os.environ["TZ"] = "Asia/Seoul"
+if hasattr(_time, "tzset"):
+    _time.tzset()
 
 import sys
 from datetime import datetime
@@ -43,19 +50,6 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup():
     init_db()
-    # 최초 실행 시 관리자 계정 자동 생성
-    import os
-    from sqlmodel import Session, select
-    admin_id = os.getenv("INIT_ADMIN_ID")
-    admin_pw = os.getenv("INIT_ADMIN_PW")
-    if admin_id and admin_pw:
-        with Session(engine) as db:
-            existing = db.exec(select(AdminUser).where(AdminUser.username == admin_id)).first()
-            if not existing:
-                db.add(AdminUser(username=admin_id,
-                                 password_hash=hash_secret(admin_pw),
-                                 role="owner"))
-                db.commit()
 
 
 # ── 오류를 사람 말로 ──────────────────────────────────────

@@ -7,6 +7,9 @@ POS PC 에서 주소를 직접 쳐도 관리자 기능에 닿지 않습니다.
 from __future__ import annotations
 
 from datetime import date, datetime
+from zoneinfo import ZoneInfo
+
+KST = ZoneInfo("Asia/Seoul")
 from io import BytesIO
 from urllib.parse import quote
 
@@ -147,7 +150,7 @@ def logout(request: Request):
 def payroll_page(request: Request, year: int | None = None, month: int | None = None,
                  admin: AdminUser = Depends(require_admin),
                  db: Session = Depends(get_session)):
-    today = date.today()
+    today = datetime.now(KST).date()
     year, month = year or today.year, month or today.month
     rows = payroll_rows(db, year, month)
     return render(request, "admin_payroll.html", {
@@ -171,7 +174,7 @@ def save_adjustment(request: Request, worker_id: int = Form(...),
     adj.amount = amount
     adj.memo = memo
     adj.edited_by = admin.username
-    adj.edited_at = datetime.now()
+    adj.edited_at = datetime.now(KST)
     db.add(adj)
     db.commit()
 
@@ -246,9 +249,13 @@ def records_page(request: Request, year: int | None = None, month: int | None = 
                  worker_id: str | None = None,
                  admin: AdminUser = Depends(require_admin),
                  db: Session = Depends(get_session)):
-    today = date.today()
+    today = datetime.now(KST).date()
     year, month = year or today.year, month or today.month
+
+    # "전체 직원" 을 고르면 빈 문자열이 넘어옵니다. int 로 바로 받으면 422 가 나서
+    # 문자열로 받은 뒤 여기서 정리합니다.
     wid = int(worker_id) if worker_id and worker_id.strip() else None
+
     q = select(Record).order_by(Record.work_date.desc())
     if wid:
         q = q.where(Record.worker_id == wid)
@@ -260,24 +267,37 @@ def records_page(request: Request, year: int | None = None, month: int | None = 
         "request": request, "admin": admin, "rows": rows, "workers": workers,
         "year": year, "month": month, "worker_id": wid})
 
+
 @router.post("/records/add", response_class=HTMLResponse)
 def add_record(request: Request,
                worker_id: int = Form(...),
                work_date: str = Form(...),
-               in_h: int = Form(...), in_m: int = Form(...),
-               out_h: int = Form(...), out_m: int = Form(...),
+               in_h: int = Form(...), in_m: int = Form(0),
+               out_h: int = Form(...), out_m: int = Form(0),
                break_mode: str = Form("auto"),
                break_minutes: int = Form(0),
                is_holiday: bool = Form(False),
                memo: str = Form(""),
                admin: AdminUser = Depends(require_admin),
                db: Session = Depends(get_session)):
-    from datetime import date as date_type
-    d = date_type.fromisoformat(work_date)
+    """같은 날 두 번째 근무 등 특이 케이스를 관리자가 직접 입력합니다.
+
+    키오스크와 달리 하루 한 건 제한을 두지 않습니다.
+    """
+    try:
+        d = date.fromisoformat(work_date)
+    except ValueError:
+        raise HTTPException(400, "날짜 형식이 올바르지 않습니다.")
+
     override = None if break_mode == "auto" else max(0, break_minutes)
     span = calc_span(in_h, in_m, out_h, out_m, break_override=override)
     if span is None:
-        raise HTTPException(400, "퇴근 시각이 출근 시각보다 이릅니다.")
+        raise HTTPException(400, "근무시간을 계산할 수 없습니다. 시각을 확인해 주세요.")
+
+    worker = db.get(Worker, worker_id)
+    if worker is None:
+        raise HTTPException(404, "직원을 찾을 수 없습니다.")
+
     rec = Record(
         worker_id=worker_id, work_date=d,
         in_h=in_h, in_m=in_m, out_h=out_h, out_m=out_m,
@@ -289,18 +309,16 @@ def add_record(request: Request,
         is_holiday=is_holiday,
         memo=memo,
         edited_by=admin.username,
-        edited_at=datetime.now(),
+        edited_at=datetime.now(KST),
     )
     db.add(rec)
     db.commit()
     db.refresh(rec)
-    worker = db.get(Worker, worker_id)
     return render(request, "_record_row.html", {
-        "request": request, "r": rec, "w": worker,
-        "year": d.year, "month": d.month})
+        "request": request, "r": rec, "w": worker})
 
 
-@router.post("/records/{record_id}/delete")
+@router.post("/records/{record_id}/delete", response_class=HTMLResponse)
 def delete_record(record_id: int,
                   admin: AdminUser = Depends(require_admin),
                   db: Session = Depends(get_session)):
@@ -309,7 +327,8 @@ def delete_record(record_id: int,
         raise HTTPException(404, "기록을 찾을 수 없습니다.")
     db.delete(rec)
     db.commit()
-    return HTMLResponse("")
+    return HTMLResponse("")       # 빈 응답 → 해당 행이 화면에서 사라집니다
+
 
 @router.post("/records/{record_id}", response_class=HTMLResponse)
 def edit_record(record_id: int, request: Request,
@@ -339,7 +358,7 @@ def edit_record(record_id: int, request: Request,
     rec.is_holiday = is_holiday
     rec.memo = memo
     rec.edited_by = admin.username
-    rec.edited_at = datetime.now()
+    rec.edited_at = datetime.now(KST)
     db.add(rec)
     db.commit()
     db.refresh(rec)
@@ -347,48 +366,7 @@ def edit_record(record_id: int, request: Request,
     worker = db.get(Worker, rec.worker_id)
     return render(request, "_record_row.html", {
         "request": request, "r": rec, "w": worker})
-@router.post("/records/add", response_class=HTMLResponse)
-def add_record(request: Request,
-               worker_id: int = Form(...),
-               work_date: str = Form(...),
-               in_h: int = Form(...), in_m: int = Form(...),
-               out_h: int = Form(...), out_m: int = Form(...),
-               break_mode: str = Form("auto"),
-               break_minutes: int = Form(0),
-               is_holiday: bool = Form(False),
-               memo: str = Form(""),
-               admin: AdminUser = Depends(require_admin),
-               db: Session = Depends(get_session)):
-    from datetime import date as date_type
-    d = date_type.fromisoformat(work_date)
 
-    # 같은 날 기록이 이미 있어도 추가 허용 (두 번 근무 케이스)
-    override = None if break_mode == "auto" else max(0, break_minutes)
-    span = calc_span(in_h, in_m, out_h, out_m, break_override=override)
-    if span is None:
-        raise HTTPException(400, "퇴근 시각이 출근 시각보다 이릅니다.")
-
-    rec = Record(
-        worker_id=worker_id, work_date=d,
-        in_h=in_h, in_m=in_m, out_h=out_h, out_m=out_m,
-        total_minutes=span.total_min,
-        break_minutes=span.break_min,
-        break_override=override,
-        break_source="admin",
-        minutes=span.paid_min,
-        is_holiday=is_holiday,
-        memo=memo,
-        edited_by=admin.username,
-        edited_at=datetime.now(),
-    )
-    db.add(rec)
-    db.commit()
-    db.refresh(rec)
-
-    worker = db.get(Worker, worker_id)
-    return render(request, "_record_row.html", {
-        "request": request, "r": rec, "w": worker,
-        "year": d.year, "month": d.month})
 
 # ─────────────────────────────────────────────────────────────
 #  주휴수당 주 단위 토글 (요구사항 3)
@@ -419,7 +397,7 @@ def toggle_weekly(request: Request,
     row.granted = granted
     row.reason = reason
     row.edited_by = admin.username
-    row.edited_at = datetime.now()
+    row.edited_at = datetime.now(KST)
     db.add(row)
     db.commit()
 

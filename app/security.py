@@ -16,6 +16,9 @@ import hmac
 import secrets
 import time
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
+KST = ZoneInfo("Asia/Seoul")
 
 from fastapi import Depends, HTTPException, Request, status
 from sqlmodel import Session, select
@@ -83,7 +86,7 @@ def set_passcode(db: Session, code: str, by: str | None = None) -> str:
         row = AppSetting(key=PASSCODE_KEY, value=code)
     row.value = code
     row.updated_by = by
-    row.updated_at = datetime.now()
+    row.updated_at = datetime.now(KST)
     db.add(row)
     db.commit()
     return code
@@ -180,7 +183,7 @@ def require_worker(request: Request,
     started = request.session.get("worker_at")
     if not wid or not started:
         raise HTTPException(status_code=401, detail="번호를 다시 입력해 주세요.")
-    if datetime.fromisoformat(started) + timedelta(minutes=WORKER_SESSION_MINUTES) < datetime.now():
+    if datetime.fromisoformat(started) + timedelta(minutes=WORKER_SESSION_MINUTES) < datetime.now(KST):
         request.session.pop("worker_id", None)
         request.session.pop("worker_at", None)
         raise HTTPException(status_code=401,
@@ -193,4 +196,4 @@ def require_worker(request: Request,
 
 def start_worker_session(request: Request, worker: Worker) -> None:
     request.session["worker_id"] = worker.id
-    request.session["worker_at"] = datetime.now().isoformat()
+    request.session["worker_at"] = datetime.now(KST).isoformat()

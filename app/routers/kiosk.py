@@ -8,9 +8,11 @@
 기기 인증은 단말기 인증 코드 1회 입력 → 2년짜리 쿠키 방식입니다.
 """
 from __future__ import annotations
-from zoneinfo import ZoneInfo
-KST = ZoneInfo("Asia/Seoul")
+
 from datetime import date, datetime
+from zoneinfo import ZoneInfo
+
+KST = ZoneInfo("Asia/Seoul")
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import JSONResponse, RedirectResponse

@@ -104,7 +104,11 @@ button{font-family:inherit;cursor:pointer;border:0}
 .brk button small{display:block;font-size:.82rem;font-weight:500;color:var(--muted);margin-top:6px}
 .brk button[aria-pressed="true"]{border-color:var(--teal);background:#E6F3F5}
 .brk button .tag{display:inline-block;font-size:.72rem;background:var(--teal);color:#fff;padding:2px 8px;border-radius:99px;margin-top:8px}
-.stepper{display:flex;align-items:center;gap:14px;justify-content:center;margin-top:20px;color:var(--muted)}
+.stepper{display:flex;align-items:center;gap:18px;justify-content:center;margin-top:22px;color:var(--ink);font-size:1.35rem;font-weight:700}
+.stepper[hidden]{display:none}
+.stepper span{min-width:110px;text-align:center;font-variant-numeric:tabular-nums}
+.stepper-hint{text-align:center;color:var(--muted);font-size:.9rem;margin-top:10px}
+.stepper-hint[hidden]{display:none}
 .stepper button{width:52px;height:52px;border-radius:50%;background:var(--mist);font-size:1.5rem;font-weight:700}
 .card .confirm{width:100%;margin-top:26px;height:82px;border-radius:var(--r);background:var(--clay);color:#fff;font-size:1.3rem;font-weight:700}
 .card .cancel{width:100%;margin-top:10px;height:52px;background:none;color:var(--muted);font-size:1rem}
@@ -178,18 +182,22 @@ td{padding:14px 12px;border-bottom:1px solid #EEF3F4;font-variant-numeric:tabula
 <!-- 퇴근 시 휴게시간 확인 -->
 <div class="sheet" id="breakSheet" role="dialog" aria-modal="true" aria-labelledby="breakTitle">
   <div class="card">
-    <h3 id="breakTitle">오늘 휴게 시간을 입력해주세요</h3>
+    <h3 id="breakTitle">오늘 쉬신 시간을 알려주세요</h3>
     <p>실제로 쉰 시간만 고르면 됩니다. 바빠서 못 쉬었으면 <b>안 쉼</b>을 누르세요.<br>고른 시간만 근무시간에서 빠집니다.</p>
     <div class="brk" id="brkOptions">
-      <button data-v="0" aria-pressed="false">안 쉼<small>0분</small></button>
-      <button data-v="30" aria-pressed="false">30분<small>식사 시간 또는 휴식</small></button>
-      <button data-v="60" aria-pressed="false">1시간<small>휴식과 식사</small></button>
+      <button type="button" data-v="0" aria-pressed="false">안 쉼<small>0분</small></button>
+      <button type="button" data-v="30" aria-pressed="false">식사시간<small>30분</small></button>
+      <button type="button" data-v="60" aria-pressed="false">1시간<small>식사·휴식</small></button>
     </div>
-    <div class="stepper">
-      <button id="brkMinus" aria-label="10분 줄이기">−</button>
-      <span>직접 조정 · <b id="brkValue">0</b>분</span>
-      <button id="brkPlus" aria-label="10분 늘리기">+</button>
+
+    <!-- 1시간을 고른 경우에만 30분 단위로 더 늘릴 수 있게 -->
+    <div class="stepper" id="brkExtra" hidden>
+      <button type="button" id="brkMinus" aria-label="30분 줄이기">−</button>
+      <span><b id="brkValue">60</b>분</span>
+      <button type="button" id="brkPlus" aria-label="30분 늘리기">+</button>
     </div>
+    <p class="stepper-hint" id="brkHint" hidden>1시간보다 더 쉬었다면 30분 단위로 늘려주세요</p>
+
     <button class="confirm" id="brkConfirm">이 시간으로 퇴근하기</button>
     <button class="cancel" id="brkCancel">취소</button>
   </div>
@@ -262,6 +270,7 @@ async function submitPin() {
   $("pinMsg").textContent = "확인 중...";
   try {
     state = await api("/api/login", { pin });
+    if (!state) return;
     pin = ""; renderPin(); $("pinMsg").textContent = "";
     showWork();
   } catch (e) {
@@ -328,49 +337,30 @@ function paint() {
 /* 출근 */
 $("btnIn").addEventListener("click", async () => {
   $("btnIn").disabled = true;
-  $("btnIn").textContent = "인내를 갖고 기다리기....";
+  $("btnIn").textContent = "처리 중...";
   try {
     state = await api("/api/clock-in", {});
+    if (!state) return;
     $("workMsg").className = "msg ok";
     $("workMsg").textContent = `${state.in_time} 출근 처리됐습니다. 좋은 하루 보내세요!`;
     paint();
     setTimeout(showPin, 3000);
-  } catch (e) { $("workMsg").className = "msg err"; $("workMsg").textContent = e.message; }
+  } catch (e) {
+    $("workMsg").className = "msg err"; $("workMsg").textContent = e.message;
+  } finally {
+    $("btnIn").disabled = false;
+    $("btnIn").textContent = "출근";
+  }
 });
 
 /* 퇴근 → 휴게시간 확인 시트 */
-$("btnOut").addEventListener("click", () => {
-  suggested = state.suggested_break ?? 0;
-  chosenBreak = suggested;
-  // 법정 권장값을 미리 눌러두되, 근로자가 언제든 0으로 바꿀 수 있게 합니다.
-  document.querySelectorAll("#brkOptions button").forEach(b => {
-    b.querySelector(".tag")?.remove();
-    b.setAttribute("aria-pressed", String(Number(b.dataset.v) === chosenBreak));
-    if (Number(b.dataset.v) === suggested && suggested > 0) {
-      b.insertAdjacentHTML("beforeend", '<span class="tag">기본 권장</span>');
-    }
-  });
-  $("brkValue").textContent = chosenBreak;
-  $("breakSheet").classList.add("on");
-});
-
-function setBreak(v) {
-  chosenBreak = Math.max(0, Math.min(v, 600));
-  $("brkValue").textContent = chosenBreak;
-  document.querySelectorAll("#brkOptions button").forEach(b =>
-    b.setAttribute("aria-pressed", String(Number(b.dataset.v) === chosenBreak)));
-}
-document.querySelectorAll("#brkOptions button").forEach(b =>
-  b.addEventListener("click", () => setBreak(Number(b.dataset.v))));
-$("brkPlus").addEventListener("click", () => setBreak(chosenBreak + 10));
-$("brkMinus").addEventListener("click", () => setBreak(chosenBreak - 10));
-$("brkCancel").addEventListener("click", () => $("breakSheet").classList.remove("on"));
-
-$("brkConfirm").addEventListener("click", async () => {
-  $("brkConfirm").textContent = "곧 됩니다..";
-  $("brkConfirm").disabled = true;
+async function doClockOut(minutes, btn, restoreLabel) {
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = "처리 중...";
   try {
-    state = await api("/api/clock-out", { break_minutes: chosenBreak });
+    state = await api("/api/clock-out", { break_minutes: minutes });
+    if (!state) return;                     // 인증 만료 → api() 가 리다이렉트 처리
     $("breakSheet").classList.remove("on");
     $("workMsg").className = "msg ok";
     $("workMsg").textContent =
@@ -379,9 +369,53 @@ $("brkConfirm").addEventListener("click", async () => {
     setTimeout(showPin, 4000);
   } catch (e) {
     $("breakSheet").classList.remove("on");
-    $("workMsg").className = "msg err"; $("workMsg").textContent = e.message;
+    $("workMsg").className = "msg err";
+    $("workMsg").textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = restoreLabel || original;
   }
+}
+
+$("btnOut").addEventListener("click", () => {
+  // 휴게 차감 안 함(none)으로 설정된 직원은 묻지 않고 바로 퇴근 처리합니다.
+  if (state.break_policy === "none") {
+    doClockOut(0, $("btnOut"), "퇴근");
+    return;
+  }
+
+  suggested = state.suggested_break ?? 0;
+  setBreak(suggested);
+  $("breakSheet").classList.add("on");
 });
+
+function setBreak(v) {
+  chosenBreak = Math.max(0, v);
+  document.querySelectorAll("#brkOptions button").forEach(b =>
+    b.setAttribute("aria-pressed", String(Number(b.dataset.v) === chosenBreak)));
+
+  // 1시간 이상일 때만 30분 단위 조정을 노출합니다.
+  const showStepper = chosenBreak >= 60;
+  $("brkExtra").hidden = !showStepper;
+  $("brkHint").hidden = !showStepper;
+  if (showStepper) {
+    $("brkValue").textContent = chosenBreak;
+    // 60분을 넘어서면 세 번째 버튼의 선택 표시는 유지합니다.
+    if (chosenBreak > 60) {
+      document.querySelector('#brkOptions button[data-v="60"]')
+              .setAttribute("aria-pressed", "true");
+    }
+  }
+}
+
+document.querySelectorAll("#brkOptions button").forEach(b =>
+  b.addEventListener("click", () => setBreak(Number(b.dataset.v))));
+$("brkPlus").addEventListener("click", () => setBreak(chosenBreak + 30));
+$("brkMinus").addEventListener("click", () => setBreak(Math.max(60, chosenBreak - 30)));
+$("brkCancel").addEventListener("click", () => $("breakSheet").classList.remove("on"));
+
+$("brkConfirm").addEventListener("click", () =>
+  doClockOut(chosenBreak, $("brkConfirm"), "이 시간으로 퇴근하기"));
 
 /* 내 기록 */
 $("btnRecs").addEventListener("click", async () => {

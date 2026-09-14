@@ -32,8 +32,12 @@ class Worker(SQLModel, table=True):
 
 
 class Record(SQLModel, table=True):
-    """일별 근무 기록."""
-    __table_args__ = (UniqueConstraint("worker_id", "work_date"),)
+    """일별 근무 기록.
+
+    하루 1건 UNIQUE 제약은 두지 않습니다. 오전/오후로 나눠 두 번 근무하는
+    특이 케이스를 관리자가 직접 입력할 수 있어야 하기 때문입니다.
+    키오스크에서의 중복 출근은 애플리케이션 레벨(_today_record)에서 막습니다.
+    """
 
     id: Optional[int] = Field(default=None, primary_key=True)
     worker_id: int = Field(foreign_key="worker.id", index=True)
